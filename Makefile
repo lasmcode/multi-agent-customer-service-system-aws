@@ -15,18 +15,19 @@ typecheck: ## Static type check with mypy
 config: ## Print resolved configuration (validates AWS + CloudFormation exports)
 	uv run python config.py
 
-infra-deploy: ## Deploy the CloudFormation foundation stack
+infra-deploy:
 	aws cloudformation deploy \
 		--template-file infrastructure/cloudformation/stack.yaml \
-		--stack-name novamart-agentcore \
+		--stack-name $(PROJECT_NAME) \
+		--parameter-overrides ProjectName=$(PROJECT_NAME) \
 		--capabilities CAPABILITY_NAMED_IAM \
-		--region us-east-1
+		--region $(AWS_REGION)
 
 infra-status: ## Check CloudFormation stack status
 	aws cloudformation describe-stacks \
-		--stack-name novamart-agentcore \
+		--stack-name $(PROJECT_NAME) \
 		--query "Stacks[0].StackStatus" \
-		--region us-east-1
+		--region $(AWS_REGION)
 
 seed: ## Seed DynamoDB + S3 with sample data
 	uv run python scripts/seed_data.py
@@ -51,6 +52,10 @@ invoke: ## Invoke the deployed runtime (usage: make invoke MSG="...")
 
 clean-aws: ## Delete all AWS resources created by this project (dry run first)
 	uv run python infrastructure/cleanup.py
+
+load-env: ## Load .env into the current shell (PowerShell-compatible via pwsh)
+	@echo "Run this in PowerShell, not make:"
+	@echo "  Get-Content .env | ForEach-Object { if (\$$_ -match '^\\s*([^#=]+)=(.*)\$$') { [System.Environment]::SetEnvironmentVariable(\$$matches[1].Trim(), \$$matches[2].Trim()) } }"	
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
