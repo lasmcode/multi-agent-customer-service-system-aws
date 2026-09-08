@@ -23,7 +23,11 @@ ACCOUNT_ID = boto3.client('sts').get_caller_identity()['Account']
 
 cf_client = boto3.client('cloudformation', region_name='us-east-1')
 try:
-    stack_info = cf_client.describe_stacks(StackName="udacity-agentcore")
+    # NOTE: patched from the Udacity starter — the original hardcoded
+    # StackName="udacity-agentcore", which breaks when PROJECT_NAME is
+    # customized (this repo uses "novamart-agentcore"). Now reads the
+    # same env var used everywhere else in this script.
+    stack_info = cf_client.describe_stacks(StackName=PROJECT_NAME)
     stack_id = stack_info['Stacks'][0]['StackId']
     full_uuid = stack_id.split('/')[-1]
     short_uuid = full_uuid.split('-')[0]
