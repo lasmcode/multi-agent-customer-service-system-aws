@@ -29,11 +29,17 @@ ACCOUNT_ID = boto3.client("sts", region_name=AWS_REGION).get_caller_identity()["
 # ─────────────────────────────────────────────
 # FOUNDATION MODELS
 # ─────────────────────────────────────────────
-# Orchestrator agent: Claude 3 Haiku - fast, cost-efficient routing decisions
-ORCHESTRATOR_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
-
-# Worker agents: Claude 3 Sonnet - more capable for reasoning and generation
-WORKER_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+# AFTER — env-overridable, Claude remains the intended production default.
+# NOTE: patched to allow local testing in AWS Academy / Vocareum lab
+# accounts, where the assumed voclabs role lacks aws-marketplace:Subscribe
+# permissions and cannot invoke any Anthropic (Marketplace) model. Leave
+# these env vars unset to use the intended Claude models.
+ORCHESTRATOR_MODEL_ID = os.environ.get(
+    "ORCHESTRATOR_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+)
+WORKER_MODEL_ID = os.environ.get(
+    "WORKER_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+)
 
 
 # ─────────────────────────────────────────────
