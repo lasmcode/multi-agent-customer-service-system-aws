@@ -284,15 +284,43 @@ def build_inventory_agent() -> Agent:
     """
 
     # TODO: Create a BedrockModel using the WORKER model
-    pass
+    model = BedrockModel(
+        model_id=config.WORKER_MODEL_ID,
+        region_name=config.AWS_REGION,
+        temperature=0.1,
+    )
 
     # TODO: System prompt for the Inventory Agent
-    pass
+    system_prompt = (
+        "You are the InventoryAgent for NovaMart's customer support system. "
+        "Your only job is to gather accurate order and customer facts from DynamoDB. "
+        "You NEVER decide whether a return is eligible, NEVER quote policy, and "
+        "NEVER draft customer-facing text - you only retrieve and report raw data "
+        "exactly as stored. If a lookup returns nothing, say so plainly instead of "
+        "guessing or inventing values."
+    )
 
     # TODO: Implement check_order_status tool
-    pass
+    @tool
+    def check_order_status(customer_id: str, order_id: str) -> dict:
+        """
+        Look up a single order's status and details from DynamoDB.
 
-    # TODO: Implement get_customer_tier
+        Args:
+            customer_id: The customer's unique identifier (partition key)
+            order_id: The order's unique identifier (sort key)
+
+        Returns:
+            The order record (product, status, dates, tracking, return_eligible),
+            or an error dict if the order does not exist.
+        """
+        table = dynamodb.Table(config.ORDERS_TABLE)
+        response = table.get_item(Key={'customer_id': customer_id, 'order_id': order_id})
+        item = response.get('Item')
+        if not item:
+            return {'error': f"No order '{order_id}' found for customer '{customer_id}'"}
+        return item
+
     @tool
     def get_customer_tier(customer_id: str) -> dict:
         """
@@ -305,7 +333,12 @@ def build_inventory_agent() -> Agent:
         Returns:
             Customer profile including tier and account details
         """
-        pass
+        table = dynamodb.Table(config.CUSTOMERS_TABLE)
+        response = table.get_item(Key={'customer_id': customer_id})
+        item = response.get('Item')
+        if not item:
+            return {'error': f"No customer '{customer_id}' found"}
+        return item
 
     # TODO: Implement list_customer_orders
     @tool
@@ -319,10 +352,17 @@ def build_inventory_agent() -> Agent:
         Returns:
             List of all orders with order_id, status, order_date, and amount
         """
-        pass
+        table = dynamodb.Table(config.ORDERS_TABLE)
+        response = table.query(KeyConditionExpression=Key('customer_id').eq(customer_id))
+        items = response.get('Items', [])
+        return {'customer_id': customer_id, 'order_count': len(items), 'orders': items}
 
     # TODO: Instantiate and return the Agent
-    pass
+    return Agent(
+        model=model,
+        system_prompt=system_prompt,
+        tools=[check_order_status, get_customer_tier, list_customer_orders],
+    )
 
 
 # ───────────────────────────────────────────────────────
@@ -339,10 +379,24 @@ def build_refund_agent() -> Agent:
     """
 
     # TODO: Create a BedrockModel
-    pass
+    model = BedrockModel(
+        model_id=config.WORKER_MODEL_ID,
+        region_name=config.AWS_REGION,
+        temperature=0.1,
+    )
 
     # TODO: System prompt for the Refund Agent
-    pass
+    system_prompt = (
+        "You are the RefundAgent for NovaMart's customer support system. "
+        "Your job is to decide whether a return/refund request is eligible. "
+        "ALWAYS call get_inventory_context first to read the order facts already "
+        "gathered by the InventoryAgent - never guess order details. "
+        "Apply the correct return window based on customer tier: "
+        "Standard customers get 30 days from order_date; Premium customers get 60 days. "
+        "Compare today's date against order_date plus the applicable window to decide "
+        "eligibility. If eligible and the customer wants to proceed, call initiate_refund. "
+        "State your eligibility decision and the reasoning (tier, days elapsed, window) clearly."
+    )
 
     # TODO: Implement get_inventory_context
     @tool
@@ -356,7 +410,10 @@ def build_refund_agent() -> Agent:
         Returns:
             The inventory_agent field from WorkflowState, or empty dict if not yet set
         """
-        pass
+        state = _read_workflow_state(session_id)
+        if not state:
+            return {'error': f"No WorkflowState found for session '{session_id}'"}
+        return state.get('inventory_agent', {})
 
     # TODO: Implement initiate_refund
     @tool
@@ -372,10 +429,36 @@ def build_refund_agent() -> Agent:
         Returns:
             Confirmation dict with return_reference number and instructions
         """
-        pass
+        table = dynamodb.Table(config.ORDERS_TABLE)
+        return_reference = f"RET-{uuid.uuid4().hex[:8].upper()}"
+        table.update_item(
+            Key={'customer_id': customer_id, 'order_id': order_id},
+            UpdateExpression=(
+                "SET return_status = :status, return_reason = :reason, "
+                "return_reference = :ref"
+            ),
+            ExpressionAttributeValues={
+                ':status': 'return_initiated',
+                ':reason': reason,
+                ':ref': return_reference,
+            },
+        )
+        return {
+            'return_reference': return_reference,
+            'order_id': order_id,
+            'status': 'return_initiated',
+            'instructions': (
+                "A prepaid return label will be emailed within 24 hours. "
+                "Please ship the item back within 14 days of receiving the label."
+            ),
+        }
 
     # TODO: Instantiate and return the Agent
-    pass
+    return Agent(
+        model=model,
+        system_prompt=system_prompt,
+        tools=[get_inventory_context, initiate_refund],
+    )
 
 
 # ───────────────────────────────────────────────────────
@@ -497,10 +580,24 @@ def build_communication_agent() -> Agent:
     """
 
     # TODO: Create a BedrockModel
-    pass
+    model = BedrockModel(
+        model_id=config.WORKER_MODEL_ID,
+        region_name=config.AWS_REGION,
+        temperature=0.3,
+    )
 
     # TODO: System prompt for the Communication Agent
-    pass
+    system_prompt = (
+        "You are the CommunicationAgent for NovaMart's customer support system. "
+        "ALWAYS call get_full_workflow_context first to read everything the other "
+        "agents found (inventory facts, policy answers, refund decisions). "
+        "Then compose ONE warm, professional, empathetic customer-facing message "
+        "that clearly incorporates every relevant detail from that context - order "
+        "status, policy explanation, or refund outcome, as applicable. "
+        "Never invent facts that are not present in the WorkflowState. "
+        "This message is the final reply the customer will read - do not include "
+        "internal reasoning, tool names, or agent names in it."
+    )
 
     # TODO: Implement get_full_workflow_context
     @tool
@@ -514,10 +611,17 @@ def build_communication_agent() -> Agent:
         Returns:
             Full WorkflowState dict (inventory_agent, policy_agent, refund_agent)
         """
-        pass
+        state = _read_workflow_state(session_id)
+        if not state:
+            return {'error': f"No WorkflowState found for session '{session_id}'"}
+        return state
 
     # TODO: Instantiate and return the Agent
-    pass
+    return Agent(
+        model=model,
+        system_prompt=system_prompt,
+        tools=[get_full_workflow_context],
+    )
 
 
 # ───────────────────────────────────────────────────────
