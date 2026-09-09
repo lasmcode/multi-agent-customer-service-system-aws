@@ -924,8 +924,16 @@ def create_guardrail() -> tuple[str, str]:
             for v in versions.get("guardrails", []):
                 if v.get("version", "DRAFT") != "DRAFT":
                     guardrail_version = v["version"]
+            if guardrail_version == "DRAFT":
+                version_response = bedrock_client.create_guardrail_version(
+                    guardrailIdentifier=guardrail_id,
+                    description="Initial production guardrail version",
+                    clientRequestToken=str(uuid.uuid4()),
+                )
+                guardrail_version = version_response["version"]
             print(f"Guardrail already exists: {guardrail_id} (version: {guardrail_version})")
             return guardrail_id, guardrail_version
+
 
     # TODO: Create the guardrail
     # Use bedrock_client.create_guardrail() with:
@@ -934,10 +942,81 @@ def create_guardrail() -> tuple[str, str]:
     #   - Topic policy - deny off-topic subjects (competitor_products, legal_threats, pricing_negotiations)
     #   - Word policy - profanity filter
     #   - blockedInputMessaging and blockedOutputsMessaging
+    response = bedrock_client.create_guardrail(
+        name=config.GUARDRAIL_NAME,
+        description=(
+            "Enterprise safety guardrail for NovaMart customer support agents."
+        ),
+        contentPolicyConfig={
+            "filtersConfig": [
+                {
+                    "type": category,
+                    "inputStrength": strength,
+                    "outputStrength": strength,
+                    "inputAction": "BLOCK",
+                    "outputAction": "BLOCK",
+                }
+                for category, strength in [
+                    ("SEXUAL", "HIGH"),
+                    ("VIOLENCE", "HIGH"),
+                    ("HATE", "HIGH"),
+                    ("INSULTS", "MEDIUM"),
+                    ("MISCONDUCT", "MEDIUM"),
+                ]
+            ]
+        },
+        sensitiveInformationPolicyConfig={
+            "piiEntitiesConfig": [
+                {
+                    "type": pii_type,
+                    "action": action,
+                }
+                for pii_type, action in [
+                    ("CREDIT_DEBIT_CARD_NUMBER", "BLOCK"),
+                    ("US_SOCIAL_SECURITY_NUMBER", "BLOCK"),
+                    ("EMAIL", "ANONYMIZE"),
+                    ("PHONE", "ANONYMIZE"),
+                ]
+            ]
+        },
+        topicPolicyConfig={
+            "topicsConfig": [
+                {
+                    "name": topic.replace(" ", "_"),
+                    "definition": f"Requests about {topic}.",
+                    "type": "DENY",
+                    "inputAction": "BLOCK",
+                    "outputAction": "BLOCK",
+                }
+                for topic in config.GUARDRAIL_BLOCKED_TOPICS
+            ]
+        },
+        wordPolicyConfig={
+            "managedWordListsConfig": [
+                {
+                    "type": "PROFANITY",
+                    "inputAction": "BLOCK",
+                    "outputAction": "BLOCK",
+                }
+            ]
+        },
+        blockedInputMessaging=(
+            "I can't help with that request, but I can assist with your NovaMart order."
+        ),
+        blockedOutputsMessaging=(
+            "I can't provide that response. I can still help with your NovaMart support request."
+        ),
+    )
+    guardrail_id = response["guardrailId"]
 
-    # Promote from DRAFT to a versioned guardrail using create_guardrail_version()
-
-    pass
+    version_response = bedrock_client.create_guardrail_version(
+        guardrailIdentifier=guardrail_id,
+        description="Initial production guardrail version",
+        clientRequestToken=str(uuid.uuid4()),
+    )
+    guardrail_version = version_response["version"]
+    print(f"Guardrail created: {guardrail_id} (version: {guardrail_version})")
+    return guardrail_id, guardrail_version
 
 
 def deploy_to_agentcore_runtime(
@@ -1007,18 +1086,36 @@ def deploy_to_agentcore_runtime(
     )
     print(f"  Artifact uploaded: s3://{config.POLICY_BUCKET}/{artifact_key}")
 
-    # TODO: Deploy to AgentCore Runtime
-    # Use agentcore_control.create_agent_runtime() with:
-    #   - agentRuntimeName (runtime_name), description, roleArn
-    #   - networkConfiguration (PUBLIC)
-    #   - protocolConfiguration (MCP)
-    #   - agentRuntimeArtifact pointing to the S3 zip uploaded above
-    #     (bucket: config.POLICY_BUCKET, prefix: artifact_key, runtime: PYTHON_3_12)
-    #   - environmentVariables (AWS_REGION, PROJECT_NAME, KB IDs, AGENT_LOG_GROUP)
-    # Note: guardrailConfiguration is injected automatically via the event hook above.
-    # Return: response.get('agentRuntimeArn', response.get('arn', ''))
-
-    pass
+    response = agentcore_control.create_agent_runtime(
+        agentRuntimeName=runtime_name,
+        description="NovaMart enterprise multi-agent customer support runtime",
+        roleArn=config.AGENTCORE_ROLE_ARN,
+        networkConfiguration={"networkMode": "PUBLIC"},
+        protocolConfiguration={"serverProtocol": "HTTP"},
+        agentRuntimeArtifact={
+            "codeConfiguration": {
+                "code": {"s3": {"bucket": config.POLICY_BUCKET, "prefix": artifact_key}},
+                "runtime": "PYTHON_3_12",
+                "entryPoint": ["main.py"],
+            }
+        },
+        environmentVariables={
+            "AWS_REGION": config.AWS_REGION,
+            "PROJECT_NAME": config.PROJECT_NAME,
+            "RETURNS_KB_ID": config.RETURNS_KB_ID,
+            "SHIPPING_KB_ID": config.SHIPPING_KB_ID,
+            "WARRANTY_KB_ID": config.WARRANTY_KB_ID,
+            "AGENT_LOG_GROUP": config.AGENT_LOG_GROUP,
+            "GUARDRAIL_ID": guardrail_id,
+            "GUARDRAIL_VERSION": guardrail_version,
+        },
+        clientToken=str(uuid.uuid4()),
+    )
+    runtime_arn = response.get("agentRuntimeArn", response.get("arn", ""))
+    if not runtime_arn:
+        raise RuntimeError("AgentCore Runtime creation returned no runtime ARN")
+    print(f"AgentCore Runtime created: {runtime_arn}")
+    return runtime_arn
 
 
 # ═══════════════════════════════════════════════════════
@@ -1048,8 +1145,39 @@ def configure_memory(runtime_arn: str) -> str:
     #   - eventExpiryDuration (7 days)
     #   - memoryStrategies with summaryMemoryStrategy
     #   - clientToken for idempotency
+    response = agentcore_control.create_memory(
+        name=memory_name,
+        description="Seven-day session summary memory for NovaMart customer support.",
+        eventExpiryDuration=7,
+        memoryStrategies=[
+            {
+                "summaryMemoryStrategy": {
+                    "name": "session_summary",
+                    "description": "Summarize each customer support session for later turns.",
+                }
+            }
+        ],
+        clientToken=str(uuid.uuid4()),
+    )
+    memory = response.get("memory", {})
+    memory_id = memory.get("id")
+    memory_arn = memory.get("arn")
+    if not memory_id or not memory_arn:
+        raise RuntimeError("AgentCore Memory creation returned no memory ID or ARN")
 
-    pass
+    for _ in range(30):
+        memory = agentcore_control.get_memory(memoryId=memory_id).get("memory", {})
+        status = memory.get("status")
+        if status == "ACTIVE":
+            memory_arn = memory.get("arn", memory_arn)
+            print(f"AgentCore Memory created: {memory_arn}")
+            return memory_arn
+        if status in {"FAILED", "DELETING", "DELETED"}:
+            reason = memory.get("failureReason", "unknown reason")
+            raise RuntimeError(f"AgentCore Memory entered {status}: {reason}")
+        time.sleep(2)
+
+    raise TimeoutError(f"AgentCore Memory did not become ACTIVE: {memory_id}")
 
 
 # ═══════════════════════════════════════════════════════

@@ -333,6 +333,8 @@ class TestTask3(unittest.TestCase):
 class TestTask4(unittest.TestCase):
 
     def setUp(self):
+        import agent_orchestrator
+
         self.agentcore = boto3.client("bedrock-agentcore", region_name=config.AWS_REGION)
 
     def test_4_1_memory_is_configured(self):
