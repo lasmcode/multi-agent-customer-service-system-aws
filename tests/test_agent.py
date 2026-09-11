@@ -449,6 +449,8 @@ class TestTask5(unittest.TestCase):
 class TestTask6(unittest.TestCase):
 
     def setUp(self):
+        import agent_orchestrator
+
         # Use the control-plane client — get_agent_runtime_logging_configuration
         # lives on bedrock-agentcore-control, not the data-plane bedrock-agentcore client.
         self.agentcore = boto3.client("bedrock-agentcore-control", region_name=config.AWS_REGION)

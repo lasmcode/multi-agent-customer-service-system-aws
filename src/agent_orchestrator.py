@@ -146,6 +146,9 @@ def _register_agentcore_compat_methods():
         _boto3.DEFAULT_SESSION._session.register(
             "creating-client-class.bedrock-agentcore", _add_methods
         )
+        _boto3.DEFAULT_SESSION._session.register(
+            "creating-client-class.bedrock-agentcore-control", _add_methods
+        )
     else:
         import botocore.session as _bc_session
 
@@ -154,6 +157,7 @@ def _register_agentcore_compat_methods():
         def _patched_get(*args, **kwargs):
             sess = _original_get(*args, **kwargs)
             sess.register("creating-client-class.bedrock-agentcore", _add_methods)
+            sess.register("creating-client-class.bedrock-agentcore-control", _add_methods)
             return sess
 
         _bc_session.get_session = _patched_get
@@ -1203,9 +1207,32 @@ def configure_observability(runtime_arn: str) -> None:
     #     - cloudWatchConfig (logGroupName: config.AGENT_LOG_GROUP, logLevel: INFO, enabled: True)
     #     - xRayConfig (enabled: True, samplingRate: 1.0)
     # On success: print the CloudWatch log group and X-Ray sampling rate.
-    # On exception: print "[Note] Logging config skipped (SDK version mismatch): <e>"
+    # On exception: print "[Note] Logging config skipped (SDK version mismatch): <e>"    
 
-    pass
+    try:
+        agentcore_control.put_agent_runtime_logging_configuration(
+            agentRuntimeId=runtime_id,
+            loggingConfiguration={
+                'cloudWatchConfig': {
+                    'logGroupName': config.AGENT_LOG_GROUP,
+                    'logLevel': 'INFO',
+                    'enabled': True,
+                },
+                'xRayConfig': {
+                    'enabled': True,
+                    'samplingRate': 1.0,
+                },
+            },
+        )
+        print(
+            f"Observability configured: CloudWatch log group "
+            f"'{config.AGENT_LOG_GROUP}', X-Ray sampling rate 1.0"
+        )
+    except Exception as e:
+        # Some SDK/botocore versions may not yet expose this operation for
+        # the very recent AgentCore Observability API - degrade gracefully
+        # instead of blocking the rest of the deploy pipeline.
+        print(f"[Note] Logging config skipped (SDK version mismatch): {e}")
 
 
 # ═══════════════════════════════════════════════════════
@@ -1530,6 +1557,24 @@ if __name__ == "__main__":
             prompt = f"[Session ID: {session_id}] [Customer ID: {customer_id}] {query}"
             response = orchestrator(prompt)
             print(f"Response: {response}")
+            
+    elif len(sys.argv) > 1 and sys.argv[1] == 'invoke':
+            message = sys.argv[2] if len(sys.argv) > 2 else "Hello"
+            runtime_arn = os.environ.get('AGENTCORE_RUNTIME_ARN')
+            if not runtime_arn:
+                print("AGENTCORE_RUNTIME_ARN not set in .env - run 'deploy' first.")
+                sys.exit(1)
+
+            data_plane = boto3.client('bedrock-agentcore', region_name=config.AWS_REGION)
+            response = data_plane.invoke_agent_runtime(
+                agentRuntimeArn=runtime_arn,
+                runtimeSessionId=str(uuid.uuid4()),
+                payload=json.dumps({'prompt': message}).encode('utf-8'),
+                contentType='application/json',
+                accept='application/json',
+            )
+            body = response['response'].read()
+            print(body.decode('utf-8'))
 
     elif len(sys.argv) > 1 and sys.argv[1] == "chat":
         # ── Interactive terminal chat - educational mode ───────────────────
