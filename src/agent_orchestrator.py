@@ -478,22 +478,22 @@ def build_policy_agent() -> Agent:
     PARALLEL, each querying its own Knowledge Base. The coordinator synthesizes
     the combined results into a complete, grounded policy answer.
     """
-    retriever_model = BedrockModel(
+    # TODO: Build ReturnsPolicyRetrieverAgent
+    returns_retriever_model = BedrockModel(
         model_id=config.WORKER_MODEL_ID,
         region_name=config.AWS_REGION,
         temperature=0.0,
     )
 
-    # TODO: Build ReturnsPolicyRetrieverAgent
     @tool
     def retrieve_returns_policy(query: str) -> str:
         """Retrieve relevant passages from the Returns Policy knowledge base."""
         results = retrieve_from_knowledge_base(config.RETURNS_KB_ID, query)
         return format_kb_results(results)
-    
+
     # Create the ReturnsPolicyRetrieverAgent with the tool above
     returns_retriever = Agent(
-        model=retriever_model,
+        model=returns_retriever_model,
         system_prompt=(
             "You are ReturnsPolicyRetrieverAgent. Call retrieve_returns_policy "
             "with the customer's question, then answer using ONLY the retrieved "
@@ -503,6 +503,12 @@ def build_policy_agent() -> Agent:
     )  
 
     # TODO: Build ShippingPolicyRetrieverAgent
+    shipping_retriever_model = BedrockModel(
+        model_id=config.WORKER_MODEL_ID,
+        region_name=config.AWS_REGION,
+        temperature=0.0,
+    )
+
     @tool
     def retrieve_shipping_policy(query: str) -> str:
         """Retrieve relevant passages from the Shipping Policy knowledge base."""
@@ -511,7 +517,7 @@ def build_policy_agent() -> Agent:
 
     # Create the ShippingPolicyRetrieverAgent with the tool above
     shipping_retriever = Agent(
-        model=retriever_model,
+        model=shipping_retriever_model,
         system_prompt=(
             "You are ShippingPolicyRetrieverAgent. Call retrieve_shipping_policy "
             "with the customer's question, then answer using ONLY the retrieved "
@@ -521,6 +527,12 @@ def build_policy_agent() -> Agent:
     )
 
     # TODO: Build WarrantyPolicyRetrieverAgent
+    warranty_retriever_model = BedrockModel(
+        model_id=config.WORKER_MODEL_ID,
+        region_name=config.AWS_REGION,
+        temperature=0.0,
+    )
+
     @tool
     def retrieve_warranty_policy(query: str) -> str:
         """Retrieve relevant passages from the Warranty Policy knowledge base."""
@@ -529,7 +541,7 @@ def build_policy_agent() -> Agent:
 
     # Create the WarrantyPolicyRetrieverAgent with the tool above
     warranty_retriever = Agent(
-        model=retriever_model,
+        model=warranty_retriever_model,
         system_prompt=(
             "You are WarrantyPolicyRetrieverAgent. Call retrieve_warranty_policy "
             "with the customer's question, then answer using ONLY the retrieved "
@@ -1189,6 +1201,14 @@ def configure_memory(runtime_arn: str) -> str:
 # ═══════════════════════════════════════════════════════
 
 
+def apply_observability_config(runtime_id: str, logging_configuration: dict) -> None:
+    """Apply AgentCore logging and tracing settings to a runtime."""
+    agentcore_control.put_agent_runtime_logging_configuration(
+        agentRuntimeId=runtime_id,
+        loggingConfiguration=logging_configuration,
+    )
+
+
 def configure_observability(runtime_arn: str) -> None:
     """
     Configure AgentCore Observability:
@@ -1197,33 +1217,20 @@ def configure_observability(runtime_arn: str) -> None:
     """
     runtime_id = runtime_arn.split("/")[-1]
 
-    # TODO: Configure observability
-    # NOTE: AgentCore API — control plane logging.
-    # put_agent_runtime_logging_configuration may not be available in all
-    # SDK versions — wrap the call in try/except and fall back gracefully.
-    # Use agentcore_control.put_agent_runtime_logging_configuration() with:
-    #   - agentRuntimeId (runtime_id)
-    #   - loggingConfiguration containing:
-    #     - cloudWatchConfig (logGroupName: config.AGENT_LOG_GROUP, logLevel: INFO, enabled: True)
-    #     - xRayConfig (enabled: True, samplingRate: 1.0)
-    # On success: print the CloudWatch log group and X-Ray sampling rate.
-    # On exception: print "[Note] Logging config skipped (SDK version mismatch): <e>"    
+    logging_configuration = {
+        "cloudWatchConfig": {
+            "logGroupName": config.AGENT_LOG_GROUP,
+            "logLevel": "INFO",
+            "enabled": True,
+        },
+        "xRayConfig": {
+            "enabled": True,
+            "samplingRate": 1.0,
+        },
+    }
 
     try:
-        agentcore_control.put_agent_runtime_logging_configuration(
-            agentRuntimeId=runtime_id,
-            loggingConfiguration={
-                'cloudWatchConfig': {
-                    'logGroupName': config.AGENT_LOG_GROUP,
-                    'logLevel': 'INFO',
-                    'enabled': True,
-                },
-                'xRayConfig': {
-                    'enabled': True,
-                    'samplingRate': 1.0,
-                },
-            },
-        )
+        apply_observability_config(runtime_id, logging_configuration)
         print(
             f"Observability configured: CloudWatch log group "
             f"'{config.AGENT_LOG_GROUP}', X-Ray sampling rate 1.0"
@@ -1555,7 +1562,14 @@ if __name__ == "__main__":
             print(f"Session: {session_id} | Customer: {customer_id}")
             print(f"Query: {query}")
             prompt = f"[Session ID: {session_id}] [Customer ID: {customer_id}] {query}"
-            response = orchestrator(prompt)
+            started_at = time.time()
+            trace.new_turn()
+            sys.stdout = _trace_writer
+            try:
+                response = orchestrator(prompt)
+            finally:
+                sys.stdout = _real_stdout
+            trace.summary(session_id, time.time() - started_at)
             print(f"Response: {response}")
             
     elif len(sys.argv) > 1 and sys.argv[1] == 'invoke':
