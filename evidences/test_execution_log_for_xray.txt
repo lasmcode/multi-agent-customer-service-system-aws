@@ -1,0 +1,356 @@
+﻿uv run python src/agent_orchestrator.py test
+$ uv run python src/agent_orchestrator.py test
+Running local agent test...
+
+────────────────────────────────────────────────────────────
+Session: 28ec6c53 | Customer: CUST-001
+Query: I want to return my wireless headphones from order ORD-27176
+<thinking>The customer wants to return their wireless headphones. This is a return request, so I need to first route this to the InventoryAgent to gather order facts, and then route it to the RefundAgent to get the refund decision. Finally, I will route it to the CommunicationAgent to compose the final response.</thinking>
+
+Tool #1: initialize_session
+
+Tool #2: route_to_inventory_agent
+<thinking>It seems there was an error because the session was not initialized before routing to the InventoryAgent. I need to re-initialize the session and then route the request to the InventoryAgent again.</thinking> 
+Tool #3: initialize_session
+
+Tool #4: route_to_inventory_agent
+<thinking> To assist with the customer's request to return their wireless headphones from order ORD-27176, I need to gather specific details about the order and the customer's tier to understand the return eligibility and window. First, I will check the order status and details using the `check_order_status` tool. Then, I will retrieve the customer's tier using the `get_customer_tier` tool to understand the return window. </thinking>
+
+Tool #1: check_order_status
+
+Tool #2: get_customer_tier
+<thinking> The `check_order_status` tool returned an error indicating that no order 'ORD-27176' was found for customer 'CUST-001'. This means the order does not exist in the database. However, I have retrieved the customer's tier, which is Premium, indicating they have a 60-day return window. Since the order does not exist, I cannot provide further details about the return eligibility or window for this specific order. </thinking>
+
+The order 'ORD-27176' for customer 'CUST-001' was not found in the database. Therefore, I cannot provide details about the return eligibility or window for this specific order. However, I have confirmed that the customer is a Premium tier member, which typically allows for a 60-day return window. If you have any other orders or need further assistance, please provide the correct order details.<thinking>The InventoryAgent has confirmed that the order 'ORD-27176' does not exist for the customer 'CUST-001'. However, the customer is a Premium tier member, which typically allows for a 60-day return window. I need to inform the customer about the non-existence of the order and provide the general return window information for Premium members. Finally, I will route the request to the CommunicationAgent to compose the final response.</thinking> 
+Tool #5: route_to_communication_agent
+<thinking> To provide an accurate and comprehensive response to the customer, I need to gather all relevant information from the workflow context. This includes the order status, return policy details, and any refund decisions related to the customer's request to return their wireless headphones. </thinking>
+
+Tool #1: get_full_workflow_context
+Thank you for reaching out to NovaMart customer support.
+
+We have reviewed your request to return your wireless headphones from order ORD-27176. Unfortunately, our records indicate that this order does not exist in our database. 
+
+However, we have confirmed that you are a Premium tier member, which typically allows for a 60-day return window. If you have any other orders or need further assistance, please provide the correct order details.
+
+We apologize for any inconvenience this may cause and appreciate your understanding. If you have any further questions or need additional support, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.<thinking>The CommunicationAgent has composed the final response. I will now provide this response to the customer.</thinking>
+
+Thank you for reaching out to NovaMart customer support.
+
+We have reviewed your request to return your wireless headphones from order ORD-27176. Unfortunately, our records indicate that this order does not exist in our database. 
+
+However, we have confirmed that you are a Premium tier member, which typically allows for a 60-day return window. If you have any other orders or need further assistance, please provide the correct order details.
+
+We apologize for any inconvenience this may cause and appreciate your understanding. If you have any further questions or need additional support, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.Response: <thinking>The CommunicationAgent has composed the final response. I will now provide this response to the customer.</thinking>
+
+Thank you for reaching out to NovaMart customer support.
+
+We have reviewed your request to return your wireless headphones from order ORD-27176. Unfortunately, our records indicate that this order does not exist in our database. 
+
+However, we have confirmed that you are a Premium tier member, which typically allows for a 60-day return window. If you have any other orders or need further assistance, please provide the correct order details.
+
+We apologize for any inconvenience this may cause and appreciate your understanding. If you have any further questions or need additional support, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.
+
+
+────────────────────────────────────────────────────────────
+Session: d25e2ec7 | Customer: CUST-002
+Query: What is the return policy for premium customers?
+<thinking>The customer is asking about the return policy for premium customers. This is a policy question, so I need to route it to the PolicyAgent to get the relevant information. Finally, I will route the request to the CommunicationAgent to compose the final response.</thinking> 
+Tool #6: route_to_policy_agent
+<thinking>It seems there was an error because the session was not initialized before routing to the PolicyAgent. I need to re-initialize the session and then route the request to the PolicyAgent again.</thinking> 
+Tool #7: initialize_session
+
+Tool #8: route_to_policy_agent
+<thinking>It seems there was an error again because the session was not initialized before routing to the PolicyAgent. I need to re-initialize the session and then route the request to the PolicyAgent again.</thinking> 
+Tool #9: initialize_session
+
+Tool #10: route_to_policy_agent
+<thinking> To answer the customer's question about the return policy for premium customers, I need to query all relevant policy knowledge bases to gather comprehensive information. This will ensure that I provide an accurate and complete response based on the latest policies. </thinking>
+
+Tool #1: search_all_policies
+    [PARALLEL RETRIEVAL - START]  Spawning 3 sub-agents concurrently via ThreadPoolExecutor
+    ──────────────────────────────────────────────────────
+    +-- [SUB-AGENT 01]  ReturnsRetriever   KB-ID: LZPEAC6SRC
+    +-- [SUB-AGENT 02]  ShippingRetriever  KB-ID: DLNCFH00LK
+    +-- [SUB-AGENT 03]  WarrantyRetriever  KB-ID: PH5KRJSQJZ
+    Retrieving in parallel... (sub-agent output suppressed - clean results printed sequentially after [END])
+<thinking><thinking><thinking> To answer the user's question about the return I need to retrieve the warranty policy information specifically related To answer the user's question about the return policy for premium customers, I need to retrieve relevant to the return policy for premium customers. </thinking policy for premium customers, I need to retrieve relevant information from the Shipping Policy knowledge base. I will use the `retrieve_shipping_policy information from` tool the Returns Policy knowledge base. I will use>
+ the
+Tool #1: retrieve_warranty_policy
+ `retrieve_returns_policy` tool with the query focused on the return policy for premium with the query focused customers. </thinking>
+ on premium customers
+Tool #1: retrieve_shipping_policy
+. </thinking>
+
+Tool #1: retrieve_returns_policy
+The return policy for premium customers is as follows:
+- Extended 60-day return window
+- FreeThe return expedited shipping on all orders
+- 3-year warranty on electronics
+- Priority customer support: policy forThe premium return customers is as follows:
+
+- Premium tier customers receive an extended 60-day response within 4 hours
+- Early access to sales and new product launches
+- Dedicated account manager return window.
+- Eligible items for return include electronics (must be in original packaging with all accessories included for orders over $5 policy for premium customers is00 as follows:
+- Extended 60-day return window
+- Free), clothing and footwear (must be unworn, unwashed, with original tags attached), and appliances expedited shipping on all orders
+- 3-year warranty on electronics
+- Priority customer support: (must be unused and in original packaging).
+- Ineligible items for return include perishable goods, response within 4 hours
+- Early access to sales and new product launches
+- Dedicated account manager for orders over $500 personalized or custom-made items, digital downloads and software licenses, items marked as "Final Sale," and hazardous materials.
+- To initiate a return, log in to your account, navigate to Order History, select the item, click "Start Return," choose your reason for return, print the prepaid return shipping label, pack the item securely, and drop it off at any authorized carrier location.
+- Refunds are processed within 5-7 business days of receiving the return.    ──────────────────────────────────────────────────────
+    [PARALLEL RETRIEVAL - END]  All 3 KBs responded  Elapsed: 3.6s
+
+    [SUB-AGENT 01]  ReturnsRetriever   KB: LZPEAC6SRC
+      | The return policy for premium customers is as follows:
+      | - Premium tier customers receive an extended 60-day return window.
+      | - Eligible items for return include electronics (must be in original packaging with all accessories included), clothing and footwear (must be unworn, unwashed, with original tags attached), and appliances (must be unused and in original packaging).
+      | - Ineligible items for return include perishable goods, personalized or custom-made items, digital downloads and software licenses, items marked as "Final Sale," and hazardous materials.
+      | - To initiate a return, log in to your account, navigate to Order History, select the item, click "Start Return," choose your reason for return, print the prepaid return shipping label, pack the item securely, and drop it off at any authorized carrier location.
+      | - Refunds are processed within 5-7 business days of receiving the return.
+
+    [SUB-AGENT 02]  ShippingRetriever  KB: DLNCFH00LK
+      | The return policy for premium customers is as follows:
+      | - Extended 60-day return window
+      | - Free expedited shipping on all orders
+      | - 3-year warranty on electronics
+      | - Priority customer support: response within 4 hours
+      | - Early access to sales and new product launches
+      | - Dedicated account manager for orders over $500
+
+    [SUB-AGENT 03]  WarrantyRetriever  KB: PH5KRJSQJZ
+      | The return policy for premium customers is as follows:
+      | - Extended 60-day return window
+      | - Free expedited shipping on all orders
+      | - 3-year warranty on electronics
+      | - Priority customer support: response within 4 hours
+      | - Early access to sales and new product launches
+      | - Dedicated account manager for orders over $500
+The return policy for premium customers at NovaMart is as follows:
+
+- Premium tier customers receive an extended 60-day return window.
+- Eligible items for return include electronics (must be in original packaging with all accessories included), clothing and footwear (must be unworn, unwashed, with original tags attached), and appliances (must be unused and in original packaging).
+- Ineligible items for return include perishable goods, personalized or custom-made items, digital downloads and software licenses, items marked as "Final Sale," and hazardous materials.
+- To initiate a return, log in to your account, navigate to Order History, select the item, click "Start Return," choose your reason for return, print the prepaid return shipping label, pack the item securely, and drop it off at any authorized carrier location.
+- Refunds are processed within 5-7 business days of receiving the return.<thinking>The PolicyAgent has provided the return policy for premium customers. I need to route the request to the CommunicationAgent to compose the final response.</thinking> 
+Tool #11: route_to_communication_agent
+<thinking> To provide an accurate and comprehensive response to the customer's query about the return policy for premium customers, I need to gather all relevant information from the workflow context. This includes the specific return policy details for premium customers. </thinking> 
+Tool #2: get_full_workflow_context
+Thank you for reaching out to NovaMart customer support.
+
+The return policy for premium customers at NovaMart is as follows:
+
+- **Return Window:** Premium tier customers receive an extended 60-day return window.
+- **Eligible Items:** Eligible items for return include:
+  - Electronics (must be in original packaging with all accessories included)
+  - Clothing and footwear (must be unworn, unwashed, with original tags attached)
+  - Appliances (must be unused and in original packaging)
+- **Ineligible Items:** Ineligible items for return include:
+  - Perishable goods
+  - Personalized or custom-made items
+  - Digital downloads and software licenses
+  - Items marked as "Final Sale"
+  - Hazardous materials
+- **Return Process:**
+  1. Log in to your account.
+  2. Navigate to Order History.
+  3. Select the item you wish to return.
+  4. Click "Start Return."
+  5. Choose your reason for return.
+  6. Print the prepaid return shipping label.
+  7. Pack the item securely.
+  8. Drop it off at any authorized carrier location.
+- **Refund Processing:** Refunds are processed within 5-7 business days of receiving the return.
+
+If you have any further questions or need additional assistance, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.<thinking>The CommunicationAgent has composed the final response. I will now provide this response to the customer.</thinking>
+
+Thank you for reaching out to NovaMart customer support.
+
+The return policy for premium customers at NovaMart is as follows:
+
+- **Return Window:** Premium tier customers receive an extended 60-day return window.
+- **Eligible Items:** Eligible items for return include:
+  - Electronics (must be in original packaging with all accessories included)
+  - Clothing and footwear (must be unworn, unwashed, with original tags attached)
+  - Appliances (must be unused and in original packaging)
+- **Ineligible Items:** Ineligible items for return include:
+  - Perishable goods
+  - Personalized or custom-made items
+  - Digital downloads and software licenses
+  - Items marked as "Final Sale"
+  - Hazardous materials
+- **Return Process:**
+  1. Log in to your account.
+  2. Navigate to Order History.
+  3. Select the item you wish to return.
+  4. Click "Start Return."
+  5. Choose your reason for return.
+  6. Print the prepaid return shipping label.
+  7. Pack the item securely.
+  8. Drop it off at any authorized carrier location.
+- **Refund Processing:** Refunds are processed within 5-7 business days of receiving the return.
+
+If you have any further questions or need additional assistance, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.Response: <thinking>The CommunicationAgent has composed the final response. I will now provide this response to the customer.</thinking>
+
+Thank you for reaching out to NovaMart customer support.
+
+The return policy for premium customers at NovaMart is as follows:
+
+- **Return Window:** Premium tier customers receive an extended 60-day return window.
+- **Eligible Items:** Eligible items for return include:
+  - Electronics (must be in original packaging with all accessories included)
+  - Clothing and footwear (must be unworn, unwashed, with original tags attached)
+  - Appliances (must be unused and in original packaging)
+- **Ineligible Items:** Ineligible items for return include:
+  - Perishable goods
+  - Personalized or custom-made items
+  - Digital downloads and software licenses
+  - Items marked as "Final Sale"
+  - Hazardous materials
+- **Return Process:**
+  1. Log in to your account.
+  2. Navigate to Order History.
+  3. Select the item you wish to return.
+  4. Click "Start Return."
+  5. Choose your reason for return.
+  6. Print the prepaid return shipping label.
+  7. Pack the item securely.
+  8. Drop it off at any authorized carrier location.
+- **Refund Processing:** Refunds are processed within 5-7 business days of receiving the return.
+
+If you have any further questions or need additional assistance, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.
+
+
+────────────────────────────────────────────────────────────
+Session: 826454e4 | Customer: CUST-003
+Query: How much would 5 items at $29.99 be with a 10% discount?
+<thinking>The customer is asking for a calculation of the total cost of 5 items at $29.99 each with a 10% discount. This is a pure math question with no order or policy component, so I can answer it directly without routing to any agent.</thinking>
+
+
+
+<thinking>To calculate the total cost, I will first find the total price of 5 items at $29.99 each, then apply the 10% discount.</thinking>
+
+Total price of 5 items = 5 * $29.99 = $149.95
+Discount = 10% of $149.95 = $14.995
+Total cost after discount = $149.95 - $14.995 = $134.955
+
+<thinking>I will round the final result to two decimal places for currency.</thinking>
+
+Final total cost = $134.96
+
+<thinking>I need to route the request to the CommunicationAgent to compose the final response.</thinking> 
+Tool #12: route_to_communication_agent
+<thinking>It seems there was an error because the session was not initialized before routing to the CommunicationAgent. I need to re-initialize the session and then route the request to the CommunicationAgent again.</thinking> 
+Tool #13: initialize_session
+
+Tool #14: route_to_communication_agent
+<thinking>It seems there was an error again because the session was not initialized before routing to the CommunicationAgent. I need to re-initialize the session and then route the request to the CommunicationAgent again.</thinking> 
+Tool #15: initialize_session
+
+Tool #16: route_to_communication_agent
+<thinking> To provide an accurate and comprehensive response to the customer's query about the total cost of 5 items at $29.99 each with a 10% discount, I need to gather all relevant information from the workflow context. This includes the calculation of the total cost before and after the discount. </thinking> 
+Tool #3: get_full_workflow_context
+Thank you for reaching out to NovaMart customer support.
+
+To calculate the total cost of 5 items at $29.99 each with a 10% discount, we can follow these steps:
+
+1. Calculate the total cost before the discount:
+   \[
+   5 \times 29.99 = 149.95
+   \]
+
+2. Calculate the discount amount:
+   \[
+   149.95 \times 0.10 = 14.995
+   \]
+
+3. Subtract the discount from the total cost:
+   \[
+   149.95 - 14.995 = 134.955
+   \]
+
+4. Round the final amount to two decimal places:
+   \[
+   134.96
+   \]
+
+Therefore, the total cost for 5 items at $29.99 each with a 10% discount is $134.96.
+
+If you have any further questions or need additional assistance, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.<thinking>The CommunicationAgent has composed the final response. I will now provide this response to the customer.</thinking>
+
+Thank you for reaching out to NovaMart customer support.
+
+To calculate the total cost of 5 items at $29.99 each with a 10% discount, we can follow these steps:
+
+1. Calculate the total cost before the discount:
+   \[
+   5 \times 29.99 = 149.95
+   \]
+
+2. Calculate the discount amount:
+   \[
+   149.95 \times 0.10 = 14.995
+   \]
+
+3. Subtract the discount from the total cost:
+   \[
+   149.95 - 14.995 = 134.955
+   \]
+
+4. Round the final amount to two decimal places:
+   \[
+   134.96
+   \]
+
+Therefore, the total cost for 5 items at $29.99 each with a 10% discount is $134.96.
+
+If you have any further questions or need additional assistance, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.Response: <thinking>The CommunicationAgent has composed the final response. I will now provide this response to the customer.</thinking>
+
+Thank you for reaching out to NovaMart customer support.
+
+To calculate the total cost of 5 items at $29.99 each with a 10% discount, we can follow these steps:
+
+1. Calculate the total cost before the discount:
+   \[
+   5 \times 29.99 = 149.95
+   \]
+
+2. Calculate the discount amount:
+   \[
+   149.95 \times 0.10 = 14.995
+   \]
+
+3. Subtract the discount from the total cost:
+   \[
+   149.95 - 14.995 = 134.955
+   \]
+
+4. Round the final amount to two decimal places:
+   \[
+   134.96
+   \]
+
+Therefore, the total cost for 5 items at $29.99 each with a 10% discount is $134.96.
+
+If you have any further questions or need additional assistance, please do not hesitate to contact us.
+
+Thank you for choosing NovaMart.
+

@@ -1,0 +1,133 @@
+make chat
+$ make chat
+uv run python src/agent_orchestrator.py chat
+
+  ====================================================================
+                NovaMart -- Multi-Agent Customer Support              
+            Strands Agents SDK  +  Amazon Bedrock AgentCore           
+  ====================================================================
+
+  ────────────────────────────────────────────────────────────────────
+  Test Customers
+  ────────────────────────────────────────────────────────────────────
+  ID          Name                Tier        Order         Product
+  ────────  ────────────────  ────────  ──────────  ────────────────────
+  CUST-001  Alice Johnson       Premium     ORD-27176  Sony headphones
+  CUST-002  Bob Smith           Standard    ORD-28001  mechanical keyboard
+  CUST-003  Carol Davis         Premium     ORD-29001  laptop
+  CUST-004  David Lee           Standard    ORD-30001  phone case
+  ────────────────────────────────────────────────────────────────────
+
+  Enter Customer ID (default: CUST-001): 
+
+  Session  : eb869a0e
+  Customer : CUST-001
+  Type a question and press Enter.  Type 'quit' to exit.
+
+  [SYSTEM]  Initializing agent graph...
+            [OK]  InventoryAgent
+            [OK]  RefundAgent
+            [OK]  PolicyAgent
+            [OK]  CommunicationAgent
+            [OK]  Orchestrator
+  [SYSTEM]  All 5 agents ready.
+
+  You > I want to return my order ORD-85015
+
+  ====================================================================
+  [ORCHESTRATOR]  Routing request to specialist agents...
+  Model : amazon.nova-lite-v1:0
+  ====================================================================
+    [AGENT REASONING - ORCHESTRATOR]
+    | The customer wants to return an order. I need to first initialize the session, then route the request to the Inventory Agent to gather order facts, and finally route it to the Refund Agent to process the return. After that, I will route the final response to the Communication Agent.
+    [TOOL CALL]  initialize_session
+    [TOOL CALL]  route_to_inventory_agent
+    | It seems there was an error because the session was not initialized before routing to the Inventory Agent. I need to re-run the initialize_session tool call and then route the request to the Inventory Agent again.
+    [TOOL CALL]  initialize_session
+    [TOOL CALL]  route_to_inventory_agent
+    | To process the return request, I need to gather specific information about the order and the customer. First, I will check the order status and details using the `check_order_status` tool. Then, I will retrieve the customer's tier using the `get_customer_tier` tool to understand the return window.
+    [TOOL CALL]  check_order_status
+    [TOOL CALL]  get_customer_tier
+    | The order ORD-85015 for customer CUST-001 is not eligible for return. The order details are as follows:
+    | - Quantity: 2
+    | - Order Date: 2026-05-16
+    | - Product Category: Sports
+    | - Product Name: Yoga Mat Premium
+    | - Return Eligible: false
+    | - Status: delivered
+    | - Tracking Number: TRK44066402
+    | - Price: 34.99
+    | - Estimated Delivery: 2026-05-21
+    | The customer, Alice Johnson, is a Premium tier member.The Inventory Agent has provided the order details and confirmed that the order is not eligible for return. I need to route this information to the Communication Agent to inform the customer about the return ineligibility.
+    [TOOL CALL]  route_to_communication_agent
+    | To provide an accurate and comprehensive response to the customer, I need to gather all relevant details about the order, return policy, and refund decision. I will use the `get_full_workflow_context` tool to retrieve this information.
+    [TOOL CALL]  get_full_workflow_context
+    | Thank you for reaching out to NovaMart customer support. We appreciate your inquiry regarding the return of your order ORD-85015.
+    | After reviewing your order details, we regret to inform you that the order is not eligible for return. Here are the specifics of your order:
+    | - **Quantity**: 2
+    | - **Order Date**: May 16, 2026
+    | - **Product Category**: Sports
+    | - **Product Name**: Yoga Mat Premium
+    | - **Return Eligible**: False
+    | - **Status**: Delivered
+    | - **Tracking Number**: TRK44066402
+    | - **Price**: $34.99
+    | - **Estimated Delivery**: May 21, 2026
+    | We understand that this may not be the news you were hoping for, and we apologize for any inconvenience this may cause. If you have any further questions or need assistance with anything else, please feel free to contact us.
+    | Thank you for your understanding and for shopping with NovaMart.The customer, Alice Johnson, has been informed that the order ORD-85015 is not eligible for return. Here is the response that will be sent to the customer:
+    | ---
+    | Thank you for reaching out to NovaMart customer support. We appreciate your inquiry regarding the return of your order ORD-85015.
+    | After reviewing your order details, we regret to inform you that the order is not eligible for return. Here are the specifics of your order:
+    | - **Quantity**: 2
+    | - **Order Date**: May 16, 2026
+    | - **Product Category**: Sports
+    | - **Product Name**: Yoga Mat Premium
+    | - **Return Eligible**: False
+    | - **Status**: Delivered
+    | - **Tracking Number**: TRK44066402
+    | - **Price**: $34.99
+    | - **Estimated Delivery**: May 21, 2026
+    | We understand that this may not be the news you were hoping for, and we apologize for any inconvenience this may cause. If you have any further questions or need assistance with anything else, please feel free to contact us.
+    | Thank you for your understanding and for shopping with NovaMart.
+
+  ====================================================================
+  WORKFLOW STATE SUMMARY  DynamoDB: novamart-agentcore-workflow-state
+  ====================================================================
+  session_id           eb869a0e
+  customer_id          CUST-001
+  version              2
+
+  Agent                         State           Note
+  ──────────────────────────  ────────────  ────────────────────
+  inventory_agent               [POPULATED]  result stored in DynamoDB
+  policy_agent                  [NOT SET]    not required for this request type
+  refund_agent                  [NOT SET]    not required for this request type
+  communication_agent           [POPULATED]  result stored in DynamoDB
+
+  Total elapsed : 12.8s
+  ====================================================================
+
+  ====================================================================
+  AGENT RESPONSE
+  ====================================================================
+  Thank you for reaching out to NovaMart customer support. We appreciate your inquiry regarding the return of your order ORD-85015.
+  
+  After reviewing your order details, we regret to inform you that the order is not eligible for return. Here are the specifics of your order:
+  
+  - **Quantity**: 2
+  - **Order Date**: May 16, 2026
+  - **Product Category**: Sports
+  - **Product Name**: Yoga Mat Premium
+  - **Return Eligible**: False
+  - **Status**: Delivered
+  - **Tracking Number**: TRK44066402
+  - **Price**: $34.99
+  - **Estimated Delivery**: May 21, 2026
+  
+  We understand that this may not be the news you were hoping for, and we apologize for any inconvenience this may cause. If you have any further questions or need assistance with anything else, please feel free to contact us.
+  
+  Thank you for your understanding and for shopping with NovaMart.
+  ====================================================================
+
+  You > 
+  Session ended.
